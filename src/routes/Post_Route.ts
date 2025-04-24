@@ -12,12 +12,14 @@ import {
   toggleLike,
   clonePost,
   getUserGallery,
+  getUserLikedPosts,
 } from "@/controllers/Post_Controller";
 import { uploadPostImg } from "@/middlewares/upload";
 import { authenticateFirebase } from "@/middlewares/authenticateFirebase_Middleware";
 
 const router = express.Router();
 router.get("/favorites", authenticateFirebase, getUserFavorites);
+router.get("/liked", authenticateFirebase, getUserLikedPosts);
 router.get("/gallery/:id", authenticateFirebase, getUserGallery);
 router.post(
   "/",

@@ -49,7 +49,6 @@ export const createTravelPost = async (
       createdAt,
     } = parsed;
 
-    // ✅ Validate createdBy object và lấy uid
     if (
       !createdBy ||
       typeof createdBy !== "object" ||
@@ -124,7 +123,7 @@ export const createTravelPost = async (
 
 export const getAllTravelPosts = async (req: Request, res: Response) => {
   try {
-    const currentUid = (req as any).user.uid;
+    // const currentUid = (req as any).user.uid;
 
     const snapshot = await admin.firestore().collection("tripPost").get();
     const allPosts = snapshot.docs.map((doc) => {
@@ -141,9 +140,7 @@ export const getAllTravelPosts = async (req: Request, res: Response) => {
     });
 
     const publicPosts = allPosts.filter(
-      (post) =>
-        (post.isPublic as boolean) !== false &&
-        (post.createdBy as any)?.uId !== currentUid
+      (post) => (post.isPublic as boolean) !== false
     );
 
     const sorted = publicPosts.sort((a: any, b: any) =>
@@ -343,6 +340,39 @@ export const getUserFavorites = async (
   }
 };
 
+export const getUserLikedPosts = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
+  try {
+    const uid = req.query.uid as string;
+    if (!uid) {
+      return res.status(400).json({ error: "UID is required" });
+    }
+
+    const snapshot = await admin.firestore().collection("tripPost").get();
+
+    const likedPosts = snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        const likes = data.likes || [];
+        const isLiked = Array.isArray(likes) && likes.includes(uid);
+        return isLiked ? { id: doc.id, ...data } : null;
+      })
+      .filter(Boolean);
+
+    console.log(`❤️ Found ${likedPosts.length} liked posts for UID: ${uid}`);
+
+    return res.status(200).json(likedPosts);
+  } catch (error) {
+    console.error("❌ Error fetching liked posts:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
 export const getAllLikedUserIds = async (_req: Request, res: Response) => {
   try {
     const snapshot = await admin.firestore().collection("tripPost").get();
@@ -441,7 +471,7 @@ export const clonePost = async (req: Request, res: Response): Promise<any> => {
 
     await newPostRef.set({
       ...postData,
-      id, // ✅ thêm ID giống như createTravelPost
+      id,
       createdAt: new Date().toISOString(),
       likes: [],
       isPublic: false,
